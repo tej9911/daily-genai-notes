@@ -1,0 +1,37 @@
+name: bulk-commits
+
+on:
+  workflow_dispatch:
+    inputs:
+      total:
+        description: "Total commits to spread across your repos"
+        required: true
+        default: "400"
+      dry_run:
+        description: "Dry run (only print the plan, change nothing)"
+        type: boolean
+        default: true
+
+concurrency:
+  group: bulk-commits
+  cancel-in-progress: false
+
+jobs:
+  bulk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Spread commits across repos
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          GIT_AUTHOR_NAME: ${{ vars.GIT_AUTHOR_NAME }}
+          GIT_AUTHOR_EMAIL: ${{ vars.GIT_AUTHOR_EMAIL }}
+        run: |
+          ARGS="--user ${{ github.repository_owner }} --total ${{ inputs.total }}"
+          if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
+          python scripts/bulk_commits.py $ARGS
